@@ -1,0 +1,1 @@
+készíts egy html fájlt amin szerepel egy gomb aminek a megnyomásakor létrehoz egy vásárlók excel ami egy adatbázis alapja lesz, legyen egy vásárló tábla amiben a vásárlónak lesz egy azonosítója, a neve, a telefonszáma és egy vagy akár több cella hely hagyva arra az esetre ha több autót vásárolnae
