@@ -1,0 +1,84 @@
+﻿<Window x:Class="AuthApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Bejelentkezés és Regisztráció" Height="800" Width="1200">
+    <Grid>
+        <!-- Háttérkép beállítása -->
+        <Grid.Background>
+            <ImageBrush ImageSource="C:\Users\13d\Desktop\SK\Projekt\adminpanelxxx\adminpanel\Img\back.jpg" Stretch="UniformToFill"/>
+        </Grid.Background>
+
+        <TabControl Background="Transparent">
+            <!-- TabControl átlátszó háttér -->
+            <!-- Bejelentkezés Tab -->
+            <TabItem Header="Bejelentkezés" BorderBrush="Black" FontSize="18">
+                <TabItem.Background>
+                    <LinearGradientBrush EndPoint="0,1">
+                        <GradientStop Color="#FFF0F0F0"/>
+                        <GradientStop Color="#FF0F6480" Offset="1"/>
+                    </LinearGradientBrush>
+                </TabItem.Background>
+                <Grid Margin="7,10,13,10" Background="Transparent" Height="535">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <!-- Email -->
+                    <TextBlock Text="Email:" Grid.Row="1" Foreground="White" Margin="315,3,-315,11" FontSize="18"/>
+                    <TextBox x:Name="LoginUsername" Grid.Row="1" Margin="187,2,187,10" Background="#AA000000" Foreground="White" Width="400" Height="26"/>
+
+                    <!-- Jelszó -->
+                    <TextBlock Text="Jelszó:" Grid.Row="1" Foreground="White" Margin="315,32,-315,7" FontSize="18" Grid.RowSpan="3"/>
+                    <PasswordBox x:Name="LoginPassword" Grid.Row="3" Margin="187,0,187,1" Background="#AA000000" Foreground="White" Width="400" Height="26"/>
+
+                    <!-- Bejelentkezés Gomb -->
+                    <Button Content="Bejelentkezés" Grid.Row="3" Margin="477,57,477,-66" Click="LoginButton_Click" Foreground="Black" Background="#FFB7B7B7" FontSize="18"/>
+                </Grid>
+            </TabItem>
+
+            <!-- Regisztráció Tab -->
+            <TabItem Header="Regisztráció" Foreground="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}" BorderBrush="Black" FontSize="18">
+                <TabItem.Background>
+                    <LinearGradientBrush EndPoint="0,1">
+                        <GradientStop Color="#FFF0F0F0"/>
+                        <GradientStop Color="#FF0F6480" Offset="1"/>
+                    </LinearGradientBrush>
+                </TabItem.Background>
+                <Grid Margin="10,0,10,0" Background="Transparent" Height="536">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="149*"/>
+                        <ColumnDefinition Width="1025*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <!-- Név -->
+                    <TextBlock Text="Név:" Grid.Row="0" Foreground="White" Margin="158,3,-307,11" FontSize="18" Grid.Column="1"/>
+                    <TextBox x:Name="RegisterName" Grid.Row="0" Margin="238,2,387,10" Background="#AA000000" Foreground="White" Width="400" Height="26" Grid.Column="1"/>
+
+                    <!-- Email -->
+                    <TextBlock Text="Email:" Foreground="White" Margin="158,34,-307,18" FontSize="18" Grid.Column="1" Grid.RowSpan="2"/>
+                    <TextBox x:Name="RegisterUsername" Grid.Row="1" Margin="238,2,387,10" Background="#AA000000" Foreground="White" Width="400" Height="26" Grid.Column="1"/>
+
+                    <!-- Telefonszám -->
+                    <TextBlock Text="Tel.szám:" Grid.Row="2" Foreground="White" Margin="158,3,-307,11" FontSize="18" Grid.Column="1"/>
+                    <TextBox x:Name="RegisterPhone" Grid.Row="2" Margin="238,2,387,10" Background="#AA000000" Foreground="White" Width="400" Height="26" Grid.Column="1"/>
+
+                    <!-- Jelszó -->
+                    <TextBlock Text="Jelszó:" Grid.Row="3" Foreground="White" Margin="158,0,-307,14" FontSize="18" Grid.Column="1"/>
+                    <PasswordBox x:Name="RegisterPassword" Grid.Row="3" Margin="238,2,387,10" Background="#AA000000" Foreground="White" Width="400" Height="26" Grid.Column="1"/>
+
+                    <!-- Regisztráció Gomb -->
+                    <Button Content="Regisztráció" Grid.Row="5" Margin="328,10,477,-19" Click="RegisterButton_Click" Background="#FFB7B7B7" FontSize="18" Grid.Column="1"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

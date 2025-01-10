@@ -1,0 +1,57 @@
+<Window x:Class="AuthApp.AdminPanel"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Admin Panel" Height="882" Width="1463"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <!-- Background Image -->
+        <Grid.Background>
+            <ImageBrush ImageSource="C:\Users\13d\Desktop\SK\Projekt\adminpanelxxx\adminpanel\Img\adf.jpg"
+                        Stretch="UniformToFill"
+                        AlignmentY="Bottom" />
+        </Grid.Background>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Background="#3A4750" Grid.Column="0" VerticalAlignment="Stretch" Opacity="0.8">
+            <StackPanel Margin="20">
+                <Label Content="Tablak kivalasztasa:" FontSize="14" Foreground="White"/>
+                <ComboBox x:Name="TableComboBox" SelectionChanged="TableComboBox_SelectionChanged" Width="200" Margin="0,0,0,10"/>
+
+                <Button x:Name="AddButton" Content="Hozzaadas" Click="AddButton_Click" Width="200" Margin="0,5,0,5"/>
+                <Button x:Name="UpdateButton" Content="Modositas" Click="UpdateButton_Click" Width="200" Margin="0,5,0,5"/>
+                <Button x:Name="DeleteButton" Content="Torles" Click="DeleteButton_Click" Width="200" Margin="0,5,0,5"/>
+                <Button Content="Mentes" Click="SaveButton_Click" Width="200" Margin="0,5,0,5"/>
+                <Button Content="Kijelentkezes" Click="LogoutButton_Click" Width="200" Margin="0,5,0,5"/>
+            </StackPanel>
+        </Border>
+
+        <!-- DataGrid -->
+        <Grid Grid.Column="1" Margin="20">
+            <Label Content="Talalatok listaja:" FontSize="20" FontWeight="Bold" Margin="0,0,0,10"/>
+            <DataGrid x:Name="CarDataGrid"
+                      AutoGenerateColumns="True"
+                      IsReadOnly="False"
+                      Margin="0,36,0,0"
+                      SelectionUnit="FullRow"
+                      SelectionChanged="CarDataGrid_SelectionChanged"
+                      BorderBrush="White"
+                      BorderThickness="1"
+                      MinHeight="100"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Top"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      Width="Auto">
+                <!-- Transparent white background -->
+                <DataGrid.Background>
+                    <SolidColorBrush Color="#33FFFFFF" />
+                </DataGrid.Background>
+            </DataGrid>
+        </Grid>
+    </Grid>
+</Window>
