@@ -1,0 +1,481 @@
+using System;
+using System.Reflection.Emit;
+using System.Security.Cryptography;
+using System.Text;
+using System.Windows;
+using MySql.Data.MySqlClient;
+
+namespace AuthApp
+{
+    public partial class MainWindow : Window
+    {
+        private const string ConnectionString = "Server=localhost;Database=auto_adatbazis;Uid=root;Pwd=root;";
+
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        // SHA256 titkosítás
+        private string HashPassword(string password)
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+                StringBuilder builder = new StringBuilder();
+                foreach (byte b in bytes)
+                {
+                    builder.Append(b.ToString("x2"));
+                }
+                return builder.ToString();
+            }
+        }
+
+        private void RegisterButton_Click(object sender, RoutedEventArgs e)
+        {
+            string email = RegisterUsername.Text;
+            string password = RegisterPassword.Password;
+            string name = RegisterName.Text;
+            string phone = RegisterPhone.Text;
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(phone))
+            {
+                MessageBox.Show("Minden mezőt ki kell tölteni!");
+                return;
+            }
+
+            string hashedPassword = HashPassword(password);
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(ConnectionString))
+                {
+                    conn.Open();
+
+                    // Ellenőrizd, hogy az email cím már létezik-e
+                    string checkQuery = "SELECT COUNT(*) FROM regisztracio WHERE email = @username";
+                    MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn);
+                    checkCmd.Parameters.AddWithValue("@username", email);
+                    int count = Convert.ToInt32(checkCmd.ExecuteScalar());
+
+                    if (count > 0)
+                    {
+                        MessageBox.Show("Az email cím már regisztrálva van. Jelentkezz be!");
+                        return;
+                    }
+
+                    // Ha nincs regisztrálva, hajtsuk végre a regisztrációt
+                    string query = "INSERT INTO regisztracio (email, jelszo, nev, telefon) VALUES (@username, @password, @name, @phone)";
+                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@username", email);
+                    cmd.Parameters.AddWithValue("@password", hashedPassword);
+                    cmd.Parameters.AddWithValue("@name", name);
+                    cmd.Parameters.AddWithValue("@phone", phone);
+                    cmd.ExecuteNonQuery();
+
+                    MessageBox.Show("Sikeres regisztráció!");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Hiba történt: " + ex.Message);
+            }
+        }
+
+        private void LoginButton_Click(object sender, RoutedEventArgs e)
+        {
+            string email = LoginUsername.Text;
+            string password = LoginPassword.Password;
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                MessageBox.Show("Minden mezőt ki kell tölteni!");
+                return;
+            }
+
+            string hashedPassword = HashPassword(password);
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(ConnectionString))
+                {
+                    conn.Open();
+                    string query = "SELECT jelszo FROM regisztracio WHERE email = @username";
+                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@username", email);
+
+                    // Az adatbázisban lévő hashelt jelszó lekérése
+                    string storedHashedPassword = cmd.ExecuteScalar()?.ToString();
+
+                    if (storedHashedPassword == null)
+                    {
+                        MessageBox.Show("Az email cím nem található!");
+                        return;
+                    }
+
+                    // Kiírjuk a naplóba a jelszavakat a hiba elhárításához
+                    Console.WriteLine($"Bejegyzett hash: {storedHashedPassword}");
+                    Console.WriteLine($"Bejelentkezés hash: {hashedPassword}");
+
+                    // Az összehasonlítás, hogy megegyeznek-e a hash-ek
+                    if (storedHashedPassword == hashedPassword)
+                    {
+                        MessageBox.Show("Sikeres bejelentkezés!");
+
+                        // AdminPanel megnyitása
+                        AdminPanel adminPanel = new AdminPanel();
+                        adminPanel.Show();
+                        this.Close(); // MainWindow bezárása
+                    }
+                    else
+                    {
+                        MessageBox.Show("Hibás email cím vagy jelszó!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Hiba történt: " + ex.Message);
+            }
+        }
+
+        private void TabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+
+        }
+    }
+}  
+
+ez a c# a belépést és regisztrációt kezeli
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using MySql.Data.MySqlClient;
+
+namespace AuthApp
+{
+    public partial class AdminPanel : Window
+    {
+        private readonly string _connectionString = "Server=localhost;Database=auto_adatbazis;Uid=root;Pwd=root;";
+        private string _selectedTable;
+
+        public AdminPanel()
+        {
+            InitializeComponent();
+            LoadTables();
+        }
+
+        private async void LoadTables()
+        {
+            using (var db = new MySqlConnection(_connectionString))
+            {
+                try
+                {
+                    await db.OpenAsync();
+                    string query = "SHOW TABLES";
+                    var cmd = new MySqlCommand(query, db);
+                    var reader = await cmd.ExecuteReaderAsync();
+
+                    while (await reader.ReadAsync())
+                    {
+                        TableComboBox.Items.Add(reader.GetString(0));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Hiba a tablak betoltesekor: {ex.Message}", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void LoadData()
+        {
+            if (string.IsNullOrEmpty(_selectedTable))
+            {
+                MessageBox.Show("Valassz egy tablat!", "Figyelmeztetes", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            using (var db = new MySqlConnection(_connectionString))
+            {
+                try
+                {
+                    await db.OpenAsync();
+                    string query = $"SELECT * FROM {_selectedTable}";
+                    var adapter = new MySqlDataAdapter(query, db);
+                    var dataTable = new DataTable();
+                    adapter.Fill(dataTable);
+                    CarDataGrid.ItemsSource = dataTable.DefaultView;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Hiba az adatok betoltese soran: {ex.Message}", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private string GetPrimaryKeyColumn(string tableName)
+        {
+            return tableName switch
+            {
+                "autok" => "Auto_ID",
+                "markak" => "Marka_ID",
+                "szinek" => "Szin_ID",
+                "modellek" => "Modell_ID",
+                "hasznalat" => "Hasznalat_ID",
+                "dolgozo" => "id",
+                "eladok" => "Elado_ID",
+                "sebessegvaltok" => "Sebessegvalto_ID",
+                "motortipusok" => "Motortipus_ID",
+                "motorspecifikaciok" => "Motorspecifikacio_ID",
+                "parkolo" => "parkolo",
+                "regisztracio" => "id",
+                _ => null // Ismeretlen tabla
+            };
+        }
+
+        private async Task<List<string>> GetColumnNamesAsync(string tableName)
+        {
+            var columns = new List<string>();
+            using (var db = new MySqlConnection(_connectionString))
+            {
+                try
+                {
+                    await db.OpenAsync();
+                    string query = $"SHOW COLUMNS FROM {tableName}";
+                    var cmd = new MySqlCommand(query, db);
+                    var reader = await cmd.ExecuteReaderAsync();
+
+                    while (await reader.ReadAsync())
+                    {
+                        columns.Add(reader.GetString(0)); // Az oszlop neve az első mező
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Hiba az oszlopok lekerdezese soran: {ex.Message}", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            return columns;
+        }
+
+        private async void AddButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_selectedTable))
+            {
+                MessageBox.Show("Valassz egy tablat!", "Figyelmeztetes", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var columnNames = await GetColumnNamesAsync(_selectedTable);
+
+            if (columnNames.Count == 0)
+            {
+                MessageBox.Show("Nem sikerult oszlopokat betolteni a tablahoz.", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var input = Microsoft.VisualBasic.Interaction.InputBox(
+                $"Add meg az adatokat vesszovel elvalasztva a kovetkezo sorrendben:\n{string.Join(", ", columnNames)}",
+                "Adat Hozzaadasa", "");
+
+            var values = input.Split(',');
+
+            if (values.Length != columnNames.Count)
+            {
+                MessageBox.Show("A megadott adatok szama nem egyezik az oszlopok szamaval!", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            using (var db = new MySqlConnection(_connectionString))
+            {
+                try
+                {
+                    await db.OpenAsync();
+                    string query = $"INSERT INTO {_selectedTable} ({string.Join(", ", columnNames)}) VALUES ({string.Join(", ", values.Select((_, i) => $"@param{i}"))})";
+                    var cmd = new MySqlCommand(query, db);
+
+                    for (int i = 0; i < values.Length; i++)
+                        cmd.Parameters.AddWithValue($"@param{i}", values[i]);
+
+                    await cmd.ExecuteNonQueryAsync();
+                    MessageBox.Show("Uj adat hozzaadva!");
+                    LoadData();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Hiba az adat hozzaadasa soran: {ex.Message}", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void UpdateButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (CarDataGrid.SelectedItem is not DataRowView rowView)
+            {
+                MessageBox.Show("Valassz ki egy sort!", "Figyelmeztetes", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string primaryKeyColumn = GetPrimaryKeyColumn(_selectedTable);
+
+            if (string.IsNullOrEmpty(primaryKeyColumn))
+            {
+                MessageBox.Show("Nem talalhato primer kulcs a kivalasztott tablahoz!", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var columnNames = await GetColumnNamesAsync(_selectedTable);
+
+            if (columnNames.Count == 0)
+            {
+                MessageBox.Show("Nem sikerult oszlopokat betolteni a tablahoz.", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var input = Microsoft.VisualBasic.Interaction.InputBox(
+                $"Add meg az adatokat vesszovel elvalasztva a kovetkezo sorrendben:\n{string.Join(", ", columnNames)}",
+                "Adatok Modositasa", "");
+
+            var values = input.Split(',');
+
+            if (values.Length != columnNames.Count)
+            {
+                MessageBox.Show("A megadott adatok szama nem egyezik az oszlopok szamaval!", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            using (var db = new MySqlConnection(_connectionString))
+            {
+                try
+                {
+                    await db.OpenAsync();
+                    string query = $"UPDATE {_selectedTable} SET {string.Join(", ", columnNames.Select((col, i) => $"{col} = @param{i}"))} WHERE {primaryKeyColumn} = @id";
+                    var cmd = new MySqlCommand(query, db);
+
+                    for (int i = 0; i < values.Length; i++)
+                        cmd.Parameters.AddWithValue($"@param{i}", values[i]);
+
+                    cmd.Parameters.AddWithValue("@id", rowView[primaryKeyColumn]);
+                    await cmd.ExecuteNonQueryAsync();
+                    MessageBox.Show("Adatok frissitve!");
+                    LoadData();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Hiba az adatok modositasa soran: {ex.Message}", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void DeleteButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (CarDataGrid.SelectedItem is not DataRowView rowView)
+            {
+                MessageBox.Show("Valassz ki egy sort!", "Figyelmeztetes", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string primaryKeyColumn = GetPrimaryKeyColumn(_selectedTable);
+
+            if (string.IsNullOrEmpty(primaryKeyColumn))
+            {
+                MessageBox.Show("Nem talalhato primer kulcs a kivalasztott tablahoz!", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            using (var db = new MySqlConnection(_connectionString))
+            {
+                try
+                {
+                    await db.OpenAsync();
+                    string query = $"DELETE FROM {_selectedTable} WHERE {primaryKeyColumn} = @id";
+                    var cmd = new MySqlCommand(query, db);
+                    cmd.Parameters.AddWithValue("@id", rowView[primaryKeyColumn]);
+
+                    await cmd.ExecuteNonQueryAsync();
+                    MessageBox.Show("Adat torolve!");
+                    LoadData();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Hiba az adat torlese soran: {ex.Message}", "Hiba", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            LoadData();
+        }
+
+        private void LogoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
+        private void TableComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            _selectedTable = TableComboBox.SelectedItem?.ToString();
+            LoadData();
+        }
+
+        private void CarDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CarDataGrid.SelectedItem is DataRowView rowView)
+            {
+                MessageBox.Show($"Kivalasztott sor: {rowView[0]}");
+            }
+        }
+    }
+}
+
+ez pedig kezeli a select, insert into, update és delete függvényeket, azt akarom hogy ezekbe mondd meg hova tegyem melyik kódrészletet az admin jogok megkülönböztetésére
+
+megadom a táblák szerkezetét CREATE TABLE auto_adatbazis.regisztracio (
+  id INT NOT NULL AUTO_INCREMENT,
+  nev VARCHAR(30) DEFAULT NULL,
+  telefon VARCHAR(15) DEFAULT NULL,
+  email VARCHAR(30) DEFAULT NULL,
+  jelszo VARCHAR(256) DEFAULT NULL,
+  PRIMARY KEY (id)
+)
+ENGINE = INNODB,
+AUTO_INCREMENT = 47,
+AVG_ROW_LENGTH = 372,
+CHARACTER SET utf8mb4,
+COLLATE utf8mb4_0900_ai_ci;
+
+CREATE TABLE auto_adatbazis.dolgozo (
+  id INT NOT NULL AUTO_INCREMENT,
+  felhasznalonev VARCHAR(20) DEFAULT NULL,
+  email VARCHAR(40) DEFAULT NULL,
+  jelszo VARCHAR(20) DEFAULT NULL,
+  jogosultsag id INT DEFAULT NULL,
+  PRIMARY KEY (id)
+)
+ENGINE = INNODB,
+AUTO_INCREMENT = 3,
+AVG_ROW_LENGTH = 8192,
+CHARACTER SET utf8mb4,
+COLLATE utf8mb4_0900_ai_ci;
+
+ALTER TABLE auto_adatbazis.dolgozo 
+  ADD CONSTRAINT FK_dolgozo_jogosultsag id FOREIGN KEY (jogosultsag id)
+    REFERENCES auto_adatbazis.jogosultsag(id) ON UPDATE CASCADE;
+
+CREATE TABLE auto_adatbazis.jogosultsag (
+  id INT NOT NULL AUTO_INCREMENT,
+  jogosultsag VARCHAR(15) DEFAULT NULL,
+  PRIMARY KEY (id)
+)
+ENGINE = INNODB,
+AUTO_INCREMENT = 3,
+AVG_ROW_LENGTH = 8192,
+CHARACTER SET utf8mb4,
+COLLATE utf8mb4_0900_ai_ci;
